@@ -12,12 +12,12 @@ const char* ssid = "espcestgay";
 const char* password = "gay12345678"; 
 
 // --- MQTT ---
-const char MQTT_BROKER_ADRRESS[] = "broker.emqx.io";  // CHANGE TO MQTT BROKER'S ADDRESS
+const char MQTT_BROKER_ADRRESS[] = "broker.emqx.io"; 
 const int MQTT_PORT = 1883;
-const char MQTT_CLIENT_ID[] = "gayradar-esp32-001";  // CHANGE IT AS YOU DESIRE
-const char MQTT_USERNAME[] = "";                        // CHANGE IT IF REQUIRED, empty if not required
+const char MQTT_CLIENT_ID[] = "gayradar-esp32-001"; 
+const char MQTT_USERNAME[] = "";                      
 const char MQTT_PASSWORD[] = "";   
-const char PUBLISH_TOPIC[] = "gay/1";    // CHANGE IT AS YOU DESIRE
+const char PUBLISH_TOPIC[] = "gay/1";
 const char SUBSCRIBE_TOPIC[] = "gay/1/setScan";
 const char TOPIC_DISCOVER[] = "gay/1/discover";
 const char TOPIC_REGISTER[] = "gay/1/register";
@@ -147,7 +147,6 @@ void connectToMQTT() {
     return;
   }
 
-  // ✅ 1. S'ABONNER AU TOPIC DE COMMANDE (EXISTANT)
   if (mqtt.subscribe(SUBSCRIBE_TOPIC))
     Serial.print("ESP32 - Souscrit au topic: ");
   else
@@ -155,7 +154,6 @@ void connectToMQTT() {
 
   Serial.println(SUBSCRIBE_TOPIC); 
 
-  // ✅ 2. S'ABONNER AU TOPIC DE DÉCOUVERTE (NOUVEAU)
   if (mqtt.subscribe(TOPIC_DISCOVER))
     Serial.print("ESP32 - Souscrit au topic: ");
   else
@@ -165,8 +163,6 @@ void connectToMQTT() {
 
   Serial.println("ESP32 - Broker MQTT Connecte !");
 }
-
-// Modifiée pour envoyer l'angle et la distance
 void sendToMQTT(int angle, float distance) { 
   StaticJsonDocument<200> message;
   message["timestamp"] = millis();
@@ -186,12 +182,8 @@ void messageHandler(String &topic, String &payload) {
   Serial.println("ESP32 - recu de MQTT:");
   Serial.println("- topic: " + topic);
   Serial.println("- payload: " + payload);
-
-  // ✅ 1. GESTION DE LA DÉCOUVERTE (NOUVEAU)
   if (topic == TOPIC_DISCOVER) {
     Serial.println("🔍 Reponse a la demande de decouverte");
-    
-    // Préparer la réponse JSON
     String response = "{";
     response += "\"deviceId\":\"" + String(MQTT_CLIENT_ID) + "\",";
     response += "\"type\":\"ESP32_Radar_Servo_Ultrason\",";
@@ -200,38 +192,27 @@ void messageHandler(String &topic, String &payload) {
     response += "\"timestamp\":" + String(millis());
     response += "}";
     
-    // Envoyer la réponse sur le topic d'enregistrement
     mqtt.publish(TOPIC_REGISTER, response);
     Serial.println("✅ Reponse decouverte envoyee sur gay/1/register");
     
   }
   
-  // ✅ 2. GESTION DES COMMANDES (TON CODE EXISTANT)
   else if (topic == SUBSCRIBE_TOPIC) {
-    
-    // On s'attend à un message de type "30-90" (start-end)
-    int separatorIndex = payload.indexOf('-'); // On cherche le tiret
+    int separatorIndex = payload.indexOf('-'); 
 
     if (separatorIndex == -1) {
       Serial.println("Erreur: Format de message inconnu (attendu: 'start-end')");
-      return; // On sort si on ne trouve pas de tiret
+      return;
     }
-
-    // On extrait les parties avant et après le tiret
     String startStr = payload.substring(0, separatorIndex);
     String endStr = payload.substring(separatorIndex + 1);
-
-    // On convertit les parties en nombres (entiers)
     int newStart = startStr.toInt();
     int newEnd = endStr.toInt();
-
-    // --- Vérifications de sécurité ---
     if (newStart < 0 || newEnd > 180 || newStart >= newEnd) {
       Serial.println("Erreur: Angles invalides. Doivent être 0-180 et start < end.");
-      return; // On n'applique pas les changements
+      return; 
     }
 
-    // Si tout est OK, on met à jour les variables globales
     scanStart = newStart;
     scanEnd = newEnd;
 
