@@ -203,6 +203,7 @@ void messageHandler(String &topic, String &payload) {
     // Envoyer la réponse sur le topic d'enregistrement
     mqtt.publish(TOPIC_REGISTER, response);
     Serial.println("✅ Reponse decouverte envoyee sur gay/1/register");
+    
   }
   
   // ✅ 2. GESTION DES COMMANDES (TON CODE EXISTANT)
