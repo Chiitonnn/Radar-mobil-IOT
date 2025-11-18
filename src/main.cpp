@@ -19,8 +19,10 @@ const char MQTT_USERNAME[] = "";                        // CHANGE IT IF REQUIRED
 const char MQTT_PASSWORD[] = "";   
 const char PUBLISH_TOPIC[] = "gay/1";    // CHANGE IT AS YOU DESIRE
 const char SUBSCRIBE_TOPIC[] = "gay/1/setScan";
+const char TOPIC_DISCOVER[] = "gay/1/discover";
+const char TOPIC_REGISTER[] = "gay/1/register";
 
-MQTTClient mqtt = MQTTClient(256);
+MQTTClient mqtt = MQTTClient(512);
 WiFiClient network;
 
 
@@ -145,13 +147,22 @@ void connectToMQTT() {
     return;
   }
 
-
+  // ✅ 1. S'ABONNER AU TOPIC DE COMMANDE (EXISTANT)
   if (mqtt.subscribe(SUBSCRIBE_TOPIC))
     Serial.print("ESP32 - Souscrit au topic: ");
   else
     Serial.print("ESP32 - Echec souscription au topic: ");
 
   Serial.println(SUBSCRIBE_TOPIC); 
+
+  // ✅ 2. S'ABONNER AU TOPIC DE DÉCOUVERTE (NOUVEAU)
+  if (mqtt.subscribe(TOPIC_DISCOVER))
+    Serial.print("ESP32 - Souscrit au topic: ");
+  else
+    Serial.print("ESP32 - Echec souscription au topic: ");
+
+  Serial.println(TOPIC_DISCOVER); 
+
   Serial.println("ESP32 - Broker MQTT Connecte !");
 }
 
@@ -176,8 +187,26 @@ void messageHandler(String &topic, String &payload) {
   Serial.println("- topic: " + topic);
   Serial.println("- payload: " + payload);
 
-  // On vérifie si le message vient bien du topic de commande
-  if (topic == SUBSCRIBE_TOPIC) {
+  // ✅ 1. GESTION DE LA DÉCOUVERTE (NOUVEAU)
+  if (topic == TOPIC_DISCOVER) {
+    Serial.println("🔍 Reponse a la demande de decouverte");
+    
+    // Préparer la réponse JSON
+    String response = "{";
+    response += "\"deviceId\":\"" + String(MQTT_CLIENT_ID) + "\",";
+    response += "\"type\":\"ESP32_Radar_Servo_Ultrason\",";
+    response += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
+    response += "\"rssi\":" + String(WiFi.RSSI()) + ",";
+    response += "\"timestamp\":" + String(millis());
+    response += "}";
+    
+    // Envoyer la réponse sur le topic d'enregistrement
+    mqtt.publish(TOPIC_REGISTER, response);
+    Serial.println("✅ Reponse decouverte envoyee sur gay/1/register");
+  }
+  
+  // ✅ 2. GESTION DES COMMANDES (TON CODE EXISTANT)
+  else if (topic == SUBSCRIBE_TOPIC) {
     
     // On s'attend à un message de type "30-90" (start-end)
     int separatorIndex = payload.indexOf('-'); // On cherche le tiret
