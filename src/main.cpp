@@ -143,7 +143,7 @@ void performTracking() {
     Serial.println("Objet perdu. Reprise du BALAYAGE.");
     currentState = STATE_SCANNING; 
   }
-  delay(50); 
+  delay(100); 
 }
 
 
